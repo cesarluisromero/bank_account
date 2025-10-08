@@ -13,18 +13,18 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class AccountMongoAdapter implements AccountRepositoryPort, MovementRepositoryPort {
 
-    private final AccountReactiveRepository accountRepo;
-    private final MovementReactiveRepository movementRepo;
+    private final AccountReactiveMongoRepository accountRepo;
+    private final MovementReactiveMongoRepository movementRepo;
 
     private static Account toDomain(AccountDocument d) {
         return Account.builder()
                 .id(d.getId()).customerId(d.getCustomerId()).type(d.getType()).currency(d.getCurrency())
-                .accountNumber(d.getAccountNumber()).balance(d.getBalance()).active(d.isActive()).build();
+                .accountNumber(d.getAccountNumber()).balance(d.getBalance()).activeInactive(Active.ACTIVE).build();
     }
     private static AccountDocument toDoc(Account a) {
         return AccountDocument.builder()
                 .id(a.getId()).customerId(a.getCustomerId()).type(a.getType()).currency(a.getCurrency())
-                .accountNumber(a.getAccountNumber()).balance(a.getBalance()).active(a.isActive()).build();
+                .accountNumber(a.getAccountNumber()).balance(a.getBalance()).activeInactive(Active.ACTIVE).build();
     }
 
     private static Movement toDomain(MovementDocument d) {
@@ -42,7 +42,9 @@ public class AccountMongoAdapter implements AccountRepositoryPort, MovementRepos
     @Override public Mono<Account> save(Account a) { return accountRepo.save(toDoc(a)).map(AccountMongoAdapter::toDomain); }
     @Override public Mono<Account> findById(String id) { return accountRepo.findById(id).map(AccountMongoAdapter::toDomain); }
     @Override public Mono<Account> findByAccountNumber(String n) { return accountRepo.findByAccountNumber(n).map(AccountMongoAdapter::toDomain); }
-    @Override public Flux<Account> findByCustomerId(String c) { return accountRepo.findByCustomerId(c).map(AccountMongoAdapter::toDomain); }
+    @Override public Flux<Account> findByCustomerId(String c) {
+        return accountRepo.findByCustomerId(c).map(AccountMongoAdapter::toDomain);
+    }
 
     // Movement
     @Override public Mono<Movement> save(Movement m) { return movementRepo.save(toDoc(m)).map(AccountMongoAdapter::toDomain); }

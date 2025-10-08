@@ -1,8 +1,10 @@
 package com.bootcamp.bank_account.application;
 
+import com.bootcamp.bank_account.application.service.AccountRules;
 import com.bootcamp.bank_account.domain.model.*;
 import com.bootcamp.bank_account.domain.port.in.AccountUseCase;
 import com.bootcamp.bank_account.domain.port.out.*;
+import com.bootcamp.bank_account.infrastructure.out.client.CustomerClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,25 +22,39 @@ public class AccountServiceImpl implements AccountUseCase {
 
     private final AccountRepositoryPort accountRepo;
     private final MovementRepositoryPort movementRepo;
+    private final CustomerClient customerClient;
+    private final AccountRules rules;
 
     @Override
     public Mono<Account> create(Account input) {
-        // cuenta única por accountNumber
-        return accountRepo.findByAccountNumber(input.getAccountNumber())
-                .flatMap(a -> Mono.error(new IllegalStateException("accountNumber already exists")))
-                .switchIfEmpty(
-                        accountRepo.save(input.toBuilder()
-                                .active(true)
-                                .balance(input.getBalance() == null ? BigDecimal.ZERO : input.getBalance())
-                                .build()
+        // 1) Verifica que exista el customer y obtén su tipo
+        return customerClient.findByDocument(input.getCustomerId())
+
+                // 2) Aplica reglas de negocio según el tipo de cliente + tipo de cuenta a crear
+                .flatMap(cust -> rules.validate(cust, input))
+
+                // 3) Garantiza unicidad de accountNumber
+                .then(accountRepo.findByAccountNumber(input.getAccountNumber()))
+                .flatMap(a -> Mono.<Account>error(new IllegalStateException("accountNumber already exists")))
+
+                // 4) Si no existe el accountNumber, persiste la nueva cuenta
+                .switchIfEmpty(Mono.defer(() ->
+                        accountRepo.save(
+                                input.toBuilder()
+                                        .activeInactive(Active.ACTIVE)
+                                        .balance(input.getBalance() == null ? BigDecimal.ZERO : input.getBalance())
+                                        .build()
                         )
-                ).cast(Account.class);
+                ));
     }
 
-    @Override public Mono<Account> findById(String id) { return accountRepo.findById(id); }
-    @Override public Flux<Account> listByCustomer(String customerId) { return accountRepo.findByCustomerId(customerId); }
+    @Override public Mono<Account> findById(String id) {
+        return accountRepo.findById(id); }
+    @Override public Flux<Account> listByCustomer(String customerId) {
+        return accountRepo.findByCustomerId(customerId);
+    }
 
-    @Transactional  // funciona en Atlas/replica set
+    @Transactional
     @Override
     public Mono<Account> deposit(String accountId, BigDecimal amount, String description) {
         if (amount == null || amount.signum() <= 0) return Mono.error(new IllegalArgumentException("amount>0"));

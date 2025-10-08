@@ -13,5 +13,5 @@ public class Account {
     private String currency;
     private String accountNumber;     // único
     private BigDecimal balance;       // >= 0
-    private boolean active;
+    private Active activeInactive;
 }

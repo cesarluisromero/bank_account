@@ -1,6 +1,7 @@
 package com.bootcamp.bank_account.infrastructure.in.web.controller;
 
 import com.bootcamp.bank_account.domain.model.Account;
+import com.bootcamp.bank_account.domain.model.Active;
 import com.bootcamp.bank_account.domain.model.Movement;
 import com.bootcamp.bank_account.domain.port.in.AccountUseCase;
 import com.bootcamp.bank_account.infrastructure.in.web.dto.*;
@@ -29,7 +30,7 @@ public class AccountController {
                 .currency(dto.currency())
                 .accountNumber(dto.accountNumber())
                 .balance(dto.balance())
-                .active(true)
+                .activeInactive(Active.ACTIVE)
                 .build());
     }
 

@@ -4,6 +4,6 @@ import com.bootcamp.bank_account.infrastructure.out.persistence.document.Movemen
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import reactor.core.publisher.Flux;
 
-public interface MovementReactiveRepository extends ReactiveMongoRepository<MovementDocument, String> {
+public interface MovementReactiveMongoRepository extends ReactiveMongoRepository<MovementDocument, String> {
     Flux<MovementDocument> findByAccountId(String accountId);
 }
